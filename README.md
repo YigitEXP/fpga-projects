@@ -104,5 +104,10 @@ endmodule
 
 ---
 
+### 6. Debug Komutları
 
+
+<img src="sample/display1.png" width="500" alt="Debug">
+
+---
 
