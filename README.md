@@ -98,3 +98,11 @@ endmodule
 
 ### 5. Çok Bitli Diziler
 
+<img src="sample/array_r.png" width="500" alt="Arrays">
+
+<img src="sample/array_r2.png" width="500" alt="Arrays">
+
+---
+
+
+
