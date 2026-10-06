@@ -14,27 +14,22 @@ module borsa(
 );
 
     always @(*) begin
-        // 1. En ucuz hisseyi bul ve kağıt adedini hesapla
         if (hisse_degeri1 <= hisse_degeri2 && hisse_degeri1 <= hisse_degeri3) begin
             karar_no     = hisse_no1;
-            kagit_sayisi = bakiye / hisse_degeri1;
+            kagit_sayisi = (hisse_degeri1 != 0) ? (bakiye / hisse_degeri1) : 64'd0;
         end else if (hisse_degeri2 <= hisse_degeri1 && hisse_degeri2 <= hisse_degeri3) begin
             karar_no     = hisse_no2;
-            kagit_sayisi = bakiye / hisse_degeri2;
+            kagit_sayisi = (hisse_degeri2 != 0) ? (bakiye / hisse_degeri2) : 64'd0;
         end else begin
             karar_no     = hisse_no3;
-            kagit_sayisi = bakiye / hisse_degeri3;
+            kagit_sayisi = (hisse_degeri3 != 0) ? (bakiye / hisse_degeri3) : 64'd0;
         end
     
-        // 2. Karar mekanizması
         if (kagit_sayisi > 1000) begin
             karar = 2'b01;
         end else begin
             karar = 2'b00; 
         end
-
-        // Ekrana yazdırma prosedürel blok içinde olmalı
-        $display("Karar No: %d, Karar: %b, Kağıt Sayısı: %d", karar_no, karar, kagit_sayisi);
     end
 
 endmodule

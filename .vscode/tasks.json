@@ -1,0 +1,26 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Verilog: Derle ve Simüle Et",
+      "type": "shell",
+      "command": "iverilog -o sim.out ${file} && vvp sim.out",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Verilog: GTKWave Aç",
+      "type": "shell",
+      "command": "gtkwave dump.vcd",
+      "group": "test",
+      "problemMatcher": []
+    }
+  ]
+}
