@@ -38,7 +38,7 @@ module borsa_sec(
 
         // 3. Şifreleme / Karma işlemleri
         sifre_anahtar = (((hisse_no1) ^ (hisse_no2)) << 6) + (hisse_no3);
-        sifre_cikis   = {yatirimci_kimlik_no, karar_no} * sifre_anahtar;
+        sifre_cikis   = {yatirimci_kimlik_no, karar_no} ^ sifre_anahtar;
     end
 
 endmodule
