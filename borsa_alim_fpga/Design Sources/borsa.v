@@ -1,0 +1,40 @@
+`timescale 1ns / 1ps
+
+module borsa(
+    input  wire [9:0]  hisse_no1,
+    input  wire [9:0]  hisse_no2,
+    input  wire [9:0]  hisse_no3,
+    input  wire [31:0] hisse_degeri1,
+    input  wire [31:0] hisse_degeri2,
+    input  wire [31:0] hisse_degeri3,
+    input  wire [63:0] bakiye,
+    output reg  [9:0]  karar_no,
+    output reg  [1:0]  karar,
+    output reg  [63:0] kagit_sayisi
+);
+
+    always @(*) begin
+        // 1. En ucuz hisseyi bul ve kağıt adedini hesapla
+        if (hisse_degeri1 <= hisse_degeri2 && hisse_degeri1 <= hisse_degeri3) begin
+            karar_no     = hisse_no1;
+            kagit_sayisi = bakiye / hisse_degeri1;
+        end else if (hisse_degeri2 <= hisse_degeri1 && hisse_degeri2 <= hisse_degeri3) begin
+            karar_no     = hisse_no2;
+            kagit_sayisi = bakiye / hisse_degeri2;
+        end else begin
+            karar_no     = hisse_no3;
+            kagit_sayisi = bakiye / hisse_degeri3;
+        end
+    
+        // 2. Karar mekanizması
+        if (kagit_sayisi > 1000) begin
+            karar = 2'b01;
+        end else begin
+            karar = 2'b00; 
+        end
+
+        // Ekrana yazdırma prosedürel blok içinde olmalı
+        $display("Karar No: %d, Karar: %b, Kağıt Sayısı: %d", karar_no, karar, kagit_sayisi);
+    end
+
+endmodule
