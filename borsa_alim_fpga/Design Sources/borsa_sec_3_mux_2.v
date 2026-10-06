@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module borsa_sec_3_mux(
+module borsa_sec_3_mux_2(
     input  wire [9:0]  hisse_no1, hisse_no2, hisse_no3,
     input  wire [9:0]  hisse_no4, hisse_no5, hisse_no6,
     input  wire [9:0]  hisse_no7, hisse_no8, hisse_no9,
@@ -20,7 +20,7 @@ module borsa_sec_3_mux(
     wire [9:0] mod_karar_no1, mod_karar_no2, mod_karar_no3;
     wire [1:0] mod_karar1, mod_karar2, mod_karar3;
 
-
+    // 1. Grup
     borsa_sec sb1(
         .hisse_no1(hisse_no1),
         .hisse_no2(hisse_no2),
@@ -37,6 +37,7 @@ module borsa_sec_3_mux(
         .sifre_anahtar(sifre_anahtar_1)
     );
 
+    // 2. Grup
     borsa_sec sb2(
         .hisse_no1(hisse_no4),
         .hisse_no2(hisse_no5),
@@ -53,23 +54,24 @@ module borsa_sec_3_mux(
         .sifre_anahtar(sifre_anahtar_2)
     );
 
-    borsa_sec sb2(
-        .hisse_no1(hisse_no4),
-        .hisse_no2(hisse_no5),
-        .hisse_no3(hisse_no6),
-        .hisse_degeri1(hisse_degeri4),
-        .hisse_degeri2(hisse_degeri5),
-        .hisse_degeri3(hisse_degeri6),
+    // 3. Grup (Düzeltilen kısım: sb3 ve hisse 7-8-9)
+    borsa_sec sb3(
+        .hisse_no1(hisse_no7),
+        .hisse_no2(hisse_no8),
+        .hisse_no3(hisse_no9),
+        .hisse_degeri1(hisse_degeri7),
+        .hisse_degeri2(hisse_degeri8),
+        .hisse_degeri3(hisse_degeri9),
         .bakiye(bakiye),
         .yatirimci_kimlik_no(yatirimci_kimlik_no),
-        .karar_no(mod_karar_no2),
-        .karar(mod_karar2),
-        .kagit_sayisi(kagit_sayisi_2),
-        .sifre_cikis(sifre_cikis_2),
-        .sifre_anahtar(sifre_anahtar_2)
+        .karar_no(mod_karar_no3),
+        .karar(mod_karar3),
+        .kagit_sayisi(kagit_sayisi_3),
+        .sifre_cikis(sifre_cikis_3),
+        .sifre_anahtar(sifre_anahtar_3)
     );
 
-    // Seçim ve deşifre
+    // Seçim ve deşifre bloğu
     always @(*) begin
         if (kagit_sayisi_1 >= kagit_sayisi_2 && kagit_sayisi_1 >= kagit_sayisi_3) begin
             karar_no = (sifre_cikis_1 / sifre_anahtar_1);

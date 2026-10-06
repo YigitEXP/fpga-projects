@@ -29,16 +29,16 @@ module borsa_sec(
             kagit_sayisi = (hisse_degeri3 != 0) ? (bakiye / hisse_degeri3) : 64'd0;
         end
     
-        // 2. Eşik kararı
+        // 2. EÅŸik kararÄ±
         if (kagit_sayisi > 1000) begin
             karar = 2'b01;
         end else begin
             karar = 2'b00; 
         end
 
-        // 3. Şifreleme / Karma işlemleri
+        // 3. Å?ifreleme / Karma iÅŸlemleri
         sifre_anahtar = (((hisse_no1) ^ (hisse_no2)) << 6) + (hisse_no3);
-        sifre_cikis   = {yatirimci_kimlik_no, karar_no} ^ sifre_anahtar;
+        sifre_cikis   = ({27'd0, yatirimci_kimlik_no, karar_no}) * sifre_anahtar;
     end
 
 endmodule
