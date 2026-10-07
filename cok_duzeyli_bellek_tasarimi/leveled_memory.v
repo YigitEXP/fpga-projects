@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module seviyelihafiza (
+module leveled_mem (
     input  wire clk,
     input  wire [5:0] adress,
     input  wire write_read,
