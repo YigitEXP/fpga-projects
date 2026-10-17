@@ -12,14 +12,27 @@ Bu doküman, SystemVerilog ile donanım tasarımı (RTL) ve doğrulama yaparken 
 
 ```systemverilog
 logic [2:0] shifted;
-assign shifted = 3'b110 << 2; // Sonuç: 3'b000 (Taşan bitler kırpılır)
+assign shifted = 3'b110 << 2;
+```
+
+- `110` değeri 2 bit sola kaydırıldığında sonuç `5'b11000` olur.
+- Ancak hedef `shifted` değişkeni 3 bitlik ise taşan bitler kırpılır ve sonuç:
+
+```systemverilog
+shifted = 3'b000;
 ```
 
 - **Sağa Kaydırma (`>>`):**
 
 ```systemverilog
 logic [2:0] shifted;
-assign shifted = 3'b110 >> 2; // Sonuç: 3'b001
+assign shifted = 3'b110 >> 2;
+```
+
+- `110` değeri 2 bit sağa kaydırıldığında en sağdaki iki bit (`10`) düşer, soldan iki adet `0` girer:
+
+```systemverilog
+shifted = 3'b001;
 ```
 
 ---
@@ -30,29 +43,45 @@ SystemVerilog'da bit aralığı seçilirken sınır değerlerinin donanım sente
 
 Bunun yerine **Indexed Part-Select** sözdizimi kullanılır:
 
-- **Yukarı Doğru Seçim (`+:`):** `a[b +: 4]` $\rightarrow$ `b` indeksinden başlayarak yukarı doğru **4 bit** seçer (`a[b+3 : b]`).
-- **Aşağı Doğru Seçim (`-:`):** `a[(b+3) -: 4]` $\rightarrow$ `b+3` indeksinden başlayarak aşağı doğru **4 bit** seçer (`a[b+3 : b]`).
+- **Yukarı Doğru Seçim (`+:`):**
+
+```systemverilog
+a[b +: 4]
+```
+
+- `b` indeksinden başlayarak yukarı doğru toplam **4 bit** seçer: `a[b+3 : b]`
+
+- **Aşağı Doğru Seçim (`-:`):**
+
+```systemverilog
+a[(b+3) -: 4]
+```
+
+- `b+3` indeksinden başlayarak aşağı doğru toplam **4 bit** seçer: `a[b+3 : b]`
 
 ---
 
 ### 3. Başlangıç Değerleri ve Dolgu Literalları (`'0`, `'1`)
 
-SystemVerilog'da bit genişliğini elle saymak yerine dolgu (fill) operatörleri kullanılır.
+SystemVerilog'da bit genişliğini elle saymak yerine dolgu (fill) operatörleri ve `initial` blokları kullanılır:
 
 ```systemverilog
 logic [63:0] bakiye;
+logic [15:0] counter;
 
 initial begin
-    bakiye = '0; // 64 bitin tamamını 0 yapar
-    // bakiye = '1; // 64 bitin tamamını 1 (FF...FF) yapar
+    bakiye = '0;   // 64 bitin tamamını 0 yapar
+    counter = '0;  // 16 bitin tamamını 0 yapar
 end
 ```
+
+> **Not:** `initial` blokları simülasyon ve FPGA açılış değerleri için kullanılır. ASIC tasarımlarında başlangıç durumu için donanımsal reset sinyalleri tercih edilmelidir.
 
 ---
 
 ### 4. Parametrik Tasarım ve Amaca Özel Bloklar (`always_comb`, `always_ff`)
 
-SystemVerilog'da belirsiz `always @(*)` veya `always @(posedge clk)` yerine niyet belirten özel bloklar tercih edilir:
+SystemVerilog'da belirsiz `always @(*)` veya `always @(posedge clk)` yerine niyet belirten özel bloklar ve `logic` tipi kullanılır:
 
 ```systemverilog
 module AdderNBit #(
@@ -63,7 +92,6 @@ module AdderNBit #(
     output logic [N:0]   result
 );
 
-    // Kombinazyonel Mantık için always_comb
     always_comb begin
         result = number1 + number2;
     end
@@ -73,13 +101,13 @@ endmodule
 
 ---
 
-### 5. Dizi (Array) ve Yapı (Struct) Mimarisi
+### 5. Çok Bitli Diziler ve Veri Yapıları
 
 Dizilerde **Unpacked** (Eleman Sayısı) ve **Packed** (Bit Genişliği/Vector) ayrımı kritik önem taşır:
 
 - **Paketlenmemiş Dizi (Unpacked Array):**
 ```systemverilog
-int myFIFO [0:7]; // 8 elemanlı, her elemanı 32-bit olan dizi
+int myFIFO [0:7]; // 8 elemanlı, her biri 32-bit olan dizi
 ```
 
 - **Veri Paketleme (Packed Struct - RTL Dostu):**
@@ -90,18 +118,29 @@ typedef struct packed {
 } hisse_t; // Donanımda 42-bitlik kesintisiz bir otobüs oluşturur
 ```
 
+<img src="sample/array_r.png" width="500" alt="Arrays">
+
+<img src="sample/array_r2.png" width="500" alt="Arrays">
+
 ---
 
-### 6. Sık Yapılan Hatalar (Common Mistakes)
+### 6. Debug Komutları
+
+<img src="sample/display1.png" width="500" alt="Debug">
+
+---
+
+### 7. Sık Yapılan Hatalar (Common Mistakes)
 
 #### Mistake #1: `logic` Değişkeninin Çoklu Sürücüsü (Multiple Drivers) Olabileceğini Sanmak
+
 Düz bir `logic data;` tanımı arka planda **değişkendir (variable)** ve yalnızca **tek bir kaynaktan** (Single Driver) sürülebilir.
 
 ```systemverilog
 // YASAK (ILLEGAL):
 logic data;
 assign data = 1'b1;
-initial data = 1 me; // HATA: Değişken hem assign hem prosedürel sürülemez!
+initial data = 1'b0; // HATA: Değişken hem assign hem prosedürel sürülemez!
 
 // ÇÖZÜM (Tri-state / Shared Bus İçin):
 wire logic data; // 'wire' eklendiği an Net (Kablo) olur ve çoklu sürücüyü destekler.
@@ -110,13 +149,17 @@ assign data = 1'b0; // YASAL (Legal)
 ```
 
 #### Mistake #2: `logic` ve `reg` Türlerinin Farklı Olduğunu Sanmak
+
 `logic` ve `reg` veri tipi seviyesinde **birebir aynıdır** (ikisi de 4-state: `0, 1, X, Z`). `logic` tipi hem `assign` hem de `always_comb/ff` bloklarında kullanılabilme esnekliğine sahiptir.
 
 #### Mistake #3: Sürülmeyen Bir Hattın `0` Olacağını Varsaymak
+
 Atama yapılmayan sinyaller asla varsayılan olarak `0` başlamaz:
+
 - `logic` / `reg` (Değişkenler) $\rightarrow$ İlk anda **`X` (Unknown / Bilinmeyen)** değerini alır.
 - `wire` (Kablosal Hatlar) $\rightarrow$ İlk anda **`Z` (High-Impedance / Kopuk Hat)** değerini alır.
 
 #### Mistake #4: `logic` İle 2-State (2 Durumlu) Tipleri Karıştırmak
+
 - **`logic` = 4-State (`0, 1, X, Z`):** Sentezlenebilir RTL tasarımları için zorunludur.
 - **`bit` / `byte` / `int` = 2-State (`0, 1`):** Sadece simülasyonu hızlandırmak için Testbench tarafında tercih edilmelidir.
