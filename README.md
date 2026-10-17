@@ -1,6 +1,6 @@
-# Verilog Notları & İpuçları
+# SystemVerilog Notları & İpuçları
 
-Bu doküman, Verilog HDL ile donanım tasarımı yaparken sıkça karşılaşılan kuralları, operatör davranışlarını ve sözdizimi inceliklerini içermektedir.
+Bu doküman, SystemVerilog ile donanım tasarımı (RTL) ve doğrulama yaparken sıkça karşılaşılan kuralları, modern sözdizimi standartlarını, veri yapılarını ve sık yapılan hataları (Common Mistakes) içermektedir.
 
 ---
 
@@ -10,84 +10,61 @@ Bu doküman, Verilog HDL ile donanım tasarımı yaparken sıkça karşılaşıl
 
 - **Sola Kaydırma (`<<`):**
 
-```verilog
-assign shifted = 3'b110 << 2;
-```
-
-* `110` değeri 2 bit sola kaydırıldığında sonuç `5'b11000` olur.
-* Ancak hedef `shifted` değişkeni 3 bitlik ise taşan bitler kırpılır ve sonuç:
-
-```verilog
-shifted = 3'b000;
+```systemverilog
+logic [2:0] shifted;
+assign shifted = 3'b110 << 2; // Sonuç: 3'b000 (Taşan bitler kırpılır)
 ```
 
 - **Sağa Kaydırma (`>>`):**
 
-```verilog
-assign shifted = 3'b110 >> 2;
-```
-
-* `110` değeri 2 bit sağa kaydırıldığında en sağdaki iki bit (`10`) düşer, soldan iki adet `0` girer:
-
-```verilog
-shifted = 3'b001;
+```systemverilog
+logic [2:0] shifted;
+assign shifted = 3'b110 >> 2; // Sonuç: 3'b001
 ```
 
 ---
 
 ### 2. Değişken İndeksli Aralık Seçimi (Indexed Part-Select)
 
-Verilog'da bit aralığı seçilirken sınır değerlerinin donanım sentezlenebilirliği açısından sabit olması gerekir. Bu nedenle değişken içeren aralıklarda `a[b+3 : b]` kullanımı **geçersizdir** ve derleme hatası verir.
+SystemVerilog'da bit aralığı seçilirken sınır değerlerinin donanım sentezlenebilirliği açısından genişliğinin sabit kalması gerekir. Bu nedenle değişken içeren aralıklarda `a[b+3 : b]` kullanımı **geçersizdir** ve derleme hatası verir.
 
 Bunun yerine **Indexed Part-Select** sözdizimi kullanılır:
 
-- **Yukarı Doğru Seçim (`+:`):**
-
-```verilog
-a[b +: 4]
-```
-
-* `b` indeksinden başlayarak yukarı doğru toplam **4 bit** seçer: `a[b+3 : b]`
-
-- **Aşağı Doğru Seçim (`-:`):**
-
-```verilog
-a[(b+3) -: 4]
-```
-
-* `b+3` indeksinden başlayarak aşağı doğru toplam **4 bit** seçer: `a[b+3 : b]`
+- **Yukarı Doğru Seçim (`+:`):** `a[b +: 4]` $\rightarrow$ `b` indeksinden başlayarak yukarı doğru **4 bit** seçer (`a[b+3 : b]`).
+- **Aşağı Doğru Seçim (`-:`):** `a[(b+3) -: 4]` $\rightarrow$ `b+3` indeksinden başlayarak aşağı doğru **4 bit** seçer (`a[b+3 : b]`).
 
 ---
 
-### 3. Başlangıç Değerlerinin Atanması (`initial` Bloğu)
+### 3. Başlangıç Değerleri ve Dolgu Literalları (`'0`, `'1`)
 
-Testbench simülasyon ortamlarında ve FPGA üzerinde register'lara başlangıç değeri vermek için `initial` bloğu kullanılır:
+SystemVerilog'da bit genişliğini elle saymak yerine dolgu (fill) operatörleri kullanılır.
 
-```verilog
+```systemverilog
+logic [63:0] bakiye;
+
 initial begin
-    outp = 3'b000;
-    counter = 16'd0;
+    bakiye = '0; // 64 bitin tamamını 0 yapar
+    // bakiye = '1; // 64 bitin tamamını 1 (FF...FF) yapar
 end
 ```
 
-> **Not:** `initial` blokları simülasyon ve FPGA açılış değerleri için kullanılır. ASIC tasarımlarında başlangıç durumu için donanımsal reset sinyalleri tercih edilmelidir.
-
 ---
 
-### 4. Parametrik Tasarım
+### 4. Parametrik Tasarım ve Amaca Özel Bloklar (`always_comb`, `always_ff`)
 
-`N = 8` olarak tanımlayıp ileride `N` değerini değiştirmek istediğimizde sadece parametre değerini güncellememiz yeterlidir:
+SystemVerilog'da belirsiz `always @(*)` veya `always @(posedge clk)` yerine niyet belirten özel bloklar tercih edilir:
 
-```verilog
+```systemverilog
 module AdderNBit #(
-    parameter N = 8
+    parameter int N = 8
 )(
-    input  [N-1:0] number1,
-    input  [N-1:0] number2,
-    output reg [N:0]   result
+    input  logic [N-1:0] number1,
+    input  logic [N-1:0] number2,
+    output logic [N:0]   result
 );
 
-    always @(number1 or number2) begin
+    // Kombinazyonel Mantık için always_comb
+    always_comb begin
         result = number1 + number2;
     end
 
@@ -96,18 +73,50 @@ endmodule
 
 ---
 
-### 5. Çok Bitli Diziler
+### 5. Dizi (Array) ve Yapı (Struct) Mimarisi
 
-<img src="sample/array_r.png" width="500" alt="Arrays">
+Dizilerde **Unpacked** (Eleman Sayısı) ve **Packed** (Bit Genişliği/Vector) ayrımı kritik önem taşır:
 
-<img src="sample/array_r2.png" width="500" alt="Arrays">
+- **Paketlenmemiş Dizi (Unpacked Array):**
+```systemverilog
+int myFIFO [0:7]; // 8 elemanlı, her elemanı 32-bit olan dizi
+```
+
+- **Veri Paketleme (Packed Struct - RTL Dostu):**
+```systemverilog
+typedef struct packed {
+    logic [9:0]  hisse_no;
+    logic [31:0] hisse_degeri;
+} hisse_t; // Donanımda 42-bitlik kesintisiz bir otobüs oluşturur
+```
 
 ---
 
-### 6. Debug Komutları
+### 6. Sık Yapılan Hatalar (Common Mistakes)
 
+#### Mistake #1: `logic` Değişkeninin Çoklu Sürücüsü (Multiple Drivers) Olabileceğini Sanmak
+Düz bir `logic data;` tanımı arka planda **değişkendir (variable)** ve yalnızca **tek bir kaynaktan** (Single Driver) sürülebilir.
 
-<img src="sample/display1.png" width="500" alt="Debug">
+```systemverilog
+// YASAK (ILLEGAL):
+logic data;
+assign data = 1'b1;
+initial data = 1 me; // HATA: Değişken hem assign hem prosedürel sürülemez!
 
----
+// ÇÖZÜM (Tri-state / Shared Bus İçin):
+wire logic data; // 'wire' eklendiği an Net (Kablo) olur ve çoklu sürücüyü destekler.
+assign data = 1'b1;
+assign data = 1'b0; // YASAL (Legal)
+```
 
+#### Mistake #2: `logic` ve `reg` Türlerinin Farklı Olduğunu Sanmak
+`logic` ve `reg` veri tipi seviyesinde **birebir aynıdır** (ikisi de 4-state: `0, 1, X, Z`). `logic` tipi hem `assign` hem de `always_comb/ff` bloklarında kullanılabilme esnekliğine sahiptir.
+
+#### Mistake #3: Sürülmeyen Bir Hattın `0` Olacağını Varsaymak
+Atama yapılmayan sinyaller asla varsayılan olarak `0` başlamaz:
+- `logic` / `reg` (Değişkenler) $\rightarrow$ İlk anda **`X` (Unknown / Bilinmeyen)** değerini alır.
+- `wire` (Kablosal Hatlar) $\rightarrow$ İlk anda **`Z` (High-Impedance / Kopuk Hat)** değerini alır.
+
+#### Mistake #4: `logic` İle 2-State (2 Durumlu) Tipleri Karıştırmak
+- **`logic` = 4-State (`0, 1, X, Z`):** Sentezlenebilir RTL tasarımları için zorunludur.
+- **`bit` / `byte` / `int` = 2-State (`0, 1`):** Sadece simülasyonu hızlandırmak için Testbench tarafında tercih edilmelidir.
